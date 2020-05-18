@@ -2,7 +2,7 @@
 
 Azure CLI guide to provide an example for how to deploy an Azure Container Instances (ACI) Streamlit application authenticated with Azure Active Directory (AAD).
 
-![](images/azure-example-streamlit-architecture.png)
+![](images/streamlit-azure-architecture.png)
 
 ## Prerequisites for guides
 
