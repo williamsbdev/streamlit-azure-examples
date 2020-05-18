@@ -14,81 +14,198 @@ Azure CLI guide to provide an example for how to deploy an Azure Container Insta
 
 Before starting, be sure that you've followed the [instructions](../example-app/README.md#buildingpushing-docker-image-to-azure) for building the example Docker image and pushing to ACR.
 
-TODO: is this statement necessary?
 **It is strongly recommend that you save the output of all the commands you run as there are values that will be ouput that will be needed for later commands.**
 
-1. Deploy ACI (inspired by this guide https://docs.microsoft.com/en-us/azure/container-instances/container-instances-using-azure-container-registry)
-    1. Create Azure Key Vault (AKV)
-    1. Create service principal with access to ACR and store in the AKV created above
-    1. Create ACI
+1. Deploy App Services Docker application
+    1. Create App Service Plan
+    1. Create Web App in service plan
+    1. Configure port for application
+    1. Configure application to only allow HTTPS
+    1. Navigate to site
+1. Secure access to application
+    1. Create AAD application client
+        1. Add permissions
+        1. Grant permissions
+    1. Connect application with AAD
+        1. Get Active Directory URL
+        1. Add authentication to the application
+    1. Create User
 1. Login to newly created application
 
-### Deploy ACI
+### Deploy App Services Docker application
 
-In order to deploy our ACI, we'll first have to create a service principal and store in AKV.
+We will be building/deploying an App Services Docker application.
 
-#### Create Azure Key Vault (AKV)
+#### Create App Service Plan
 
-First we'll create the key vault.
-
-```
-az keyvault create \
-  --resource-group streamlit-example \
-  --name streamlitkeyvault
-```
-
-#### Create service principal with access to ACR and store in the AKV created above
-
-This will nest the command to create a service principal in the command to store the password in the AKV.
+To create an App Services application, we first need to create a App Service Plan with the desired size.
 
 ```
-az keyvault secret set \
-  --vault-name streamlitkeyvault \
-  --name streamlit-pull-pwd \
-  --value $(az ad sp create-for-rbac \
-                --name http://streamlit-pull \
-                --scopes $(az acr show --name streamlit --query id --output tsv) \
-                --role acrpull \
-                --query password \
-                --output tsv)
-```
-
-This command will store the username in the AKV:
-
-```
-az keyvault secret set \
-    --vault-name streamlitkeyvault \
-    --name streamlit-pull-usr \
-    --value $(az ad sp show --id http://streamlit-pull --query appId --output tsv)
-```
-
-#### Create ACI
-
-Now the username/password for the service principal that has access to pull from ACR will be used so that ACI can pull the image when deployed:
-
-```
-az container create \
+az appservice plan create \
   --name streamlit-example \
   --resource-group streamlit-example \
-  --image streamlit.azurecr.io/streamlit-example:1 \
-  --cpu 1 \
-  --memory 1 \
-  --port 8501 \
-  --registry-login-server streamlit.azurecr.io \
-  --registry-username $(az keyvault secret show --vault-name streamlitkeyvault -n streamlit-pull-usr --query value -o tsv) \
-  --registry-password $(az keyvault secret show --vault-name streamlitkeyvault -n streamlit-pull-pwd --query value -o tsv) \
-  --dns-name-label streamlit-example-$RANDOM \
-  --query ipAddress.fqdn
+  --is-linux
+```
+
+#### Create Web App in service plan
+
+Next we'll create ande deploy a Docker Web App in the service plan. You will need to choose a globally unique name as the `name` of the application is used as a subdomain of  `azurewebsites.net` for the deployed application and will be used throughout the rest of the guide.
+
+```
+az webapp create \
+  --name <app-name> \
+  --plan streamlit-example \
+  --resource-group streamlit-example \
+  --deployment-container-image-name streamlit.azurecr.io/streamlit-example:1
+```
+
+This will deploy your application to `https://<app-example>.azurewebsites.net` but will not be accessible yet as we need to specify the port for the application to use.
+
+#### Configure port for application
+
+We have to tell the Web App what port our container is running on with the `WEBSITES_PORT` environment variable. Update the settings with the following command:
+
+```
+az webapp config appsettings set \
+  --name <app-name> \
+  --resource-group streamlit-example \
+  --settings WEBSITES_PORT=8501
+```
+
+The application is now accessible via `https://<app-example>.azurewebsites.net`. It is not restricted yet to only HTTPS.
+
+#### Configure application to only allow HTTPS
+
+In order to only allow HTTPS connections and redirect HTTP to HTTPS, run the command:
+
+```
+az webapp update \
+  --resource-group streamlit-example \
+  --name <app-name> \
+  --https-only true
+```
+
+#### Navigate to site
+
+Validate the application is properly deployed to `https://<app-name>.azurewebsites.net`.
+
+### Secure Access to application
+
+Now we would like to restrict who can access the application so we'll configure a client with AAD for the application.
+
+#### Create AAD application client
+
+We will need to create an AAD instance to use for authenticating the users. Generate a password to use for the app secret and save this in a secure place.
+
+```
+az ad app create \
+  --display-name <app-name> \
+  --password <app-secret> \
+  --reply-urls https://<app-name>.azurewebsites.net/.auth/login/aad/callback \
+  --query appId
+```
+
+This will return the ID of the app like this:
+
+```
+ecbacb08-df8b-450d-82b3-3fced03f2b27
+```
+
+##### Add permissions
+
+We need to add permissions
+
+- The `--id` is the ID that was returned above
+- The "magical" `--api` ID is `00000003-0000-0000-c000-000000000000` which corresponds to [`https://graph.microsoft.com/`](https://github.com/Azure/azure-cli/issues/7925#issuecomment-511543237)
+- The "magical" `--api-permissions 37f7f235-527c-4136-accd-4a02d197296e=Scope e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope` are the IDs of the two permissions we want our application to have
+
+```
+az ad app permission add \
+  --id ecbacb08-df8b-450d-82b3-3fced03f2b27 \
+  --api 00000003-0000-0000-c000-000000000000
+  --api-permissions 37f7f235-527c-4136-accd-4a02d197296e=Scope e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope
+```
+
+##### Grant permissions
+
+Adding the permissions then allows us to grant the permissions to the app client.
+
+```
+az ad app permission grant \
+  --id ecbacb08-df8b-450d-82b3-3fced03f2b27 \
+  --api 00000003-0000-0000-c000-000000000000
+```
+
+#### Connect application with AAD
+
+In order to update the application authentication to use AAD, we will need the following values:
+
+- AAD Client ID (the value that was returned when creating the AAD)
+- AAD Client secret (the value you used for the password)
+- AAD Token Issuer URL (combination of values)
+
+##### Get Active Directory URL
+
+```
+az cloud show --query endpoints.activeDirectory
 ```
 
 This will return output like this:
 
 ```
-"streamlit-example-291.centralus.azurecontainer.io"
+"https://login.microsoftonline.com"
+```
+
+Then get your Tenant ID:
+
+```
+az account show --query tenantId
+```
+
+This will return output like this:
+
+```
+"54826b22-38d6-4fb2-bad9-b7983a3e9c5a"
+```
+
+Use both of the above outputs to create the `aad-token-issuer-url` when adding auth to the application.
+
+```
+https://login.microsoftonline.com/54826b22-38d6-4fb2-bad9-b7983a3e9c5a/
+```
+
+##### Add authentication to the application
+
+Connect the application with AAD substituting the values accordingly:
+
+```
+az webapp auth update \
+  --resource-group streamlit-example \
+  --name <app-name> \
+  --enabled true \
+  --action LoginWithAzureActiveDirectory \
+  --aad-allowed-token-audiences https://<app-name>.azurewebsites.net/.auth/login/aad/callback \
+  --aad-client-id ecbacb08-df8b-450d-82b3-3fced03f2b27 \
+  --aad-client-secret <app-secret> \
+  --aad-token-issuer-url https://login.microsoftonline.com/54826b22-38d6-4fb2-bad9-b7983a3e9c5a/
+```
+
+Navigate to yoru application again (`https://<app-name>.azurewebsites.net`). You will be prompted to login to access the application (it may take a minute for the application to redirect the user to authenticate).
+
+#### Create User
+
+Create the first user with access to the application:
+
+```
+az ad user create \
+  --display-name <username> \
+  --password Password1! \
+  --user-principal-name <user>@<verified-domain-of-tenant> \
+  --force-change-password-next-login true
 ```
 
 ### Login to newly created application
 
-Check your newly deployed application (https://azure-example.streamlit.io for this guide).
+Check your newly deployed application `https://<app-name>.azurewebsites.net`.
 
-You will be prompted to login with the username that we created earlier. You should have gotten an email with your temporary password.
+You will be prompted to login. Login with the username that we just created.

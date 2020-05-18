@@ -33,10 +33,37 @@ Push to your Azure Container Registry (ACR) to be used in the Azure architecture
 1. Build Docker image
 1. Push Docker image to ACR
 
+#### Create resource group
 ```
-az group create --location centralus --name streamlit-example
-az acr create --resource-group streamlit-example --name streamlit --sku Basic
+az group create \
+  --location centralus \
+  --name streamlit-example \
+  --admin-enable true
+```
+
+#### Create the ACR
+
+```
+az acr create \
+  --resource-group streamlit-example \
+  --name streamlit \
+  --sku Basic
+```
+
+#### Authenticate with ACR
+
+```
 az acr login --name streamlit
+```
+
+#### Build Docker image
+
+```
 docker build -t streamlit.azurecr.io/streamlit-example:1 .
+```
+
+#### Push Docker image to ACR
+
+```
 docker push streamlit.azurecr.io/streamlit-example:1
 ```
