@@ -1,6 +1,6 @@
 # cli-app-services
 
-Azure CLI guide to provide an example for how to deploy an Azure Container Instances (ACI) Streamlit application authenticated with Azure Active Directory (AAD).
+Azure CLI guide to provide an example for how to deploy an Azure App Services Streamlit application authenticated with Azure Active Directory (AAD).
 
 ![](images/streamlit-azure-architecture.png)
 
