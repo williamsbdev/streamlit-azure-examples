@@ -1,4 +1,4 @@
-# cli-example
+# cli-app-services
 
 Azure CLI guide to provide an example for how to deploy an Azure Container Instances (ACI) Streamlit application authenticated with Azure Active Directory (AAD).
 
@@ -8,11 +8,11 @@ Azure CLI guide to provide an example for how to deploy an Azure Container Insta
 
 - Azure account
 - [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/get-started-with-azure-cli?view=azure-cli-latest)
-- [Build/Push Docker image to ACR](../example-app/README.md#buildingpushing-docker-image-to-azure)
+- [Build/Push Docker image to ACR](../app/README.md#buildingpushing-docker-image-to-azure)
 
 ## Setup
 
-Before starting, be sure that you've followed the [instructions](../example-app/README.md#buildingpushing-docker-image-to-azure) for building the example Docker image and pushing to ACR.
+Before starting, be sure that you've followed the [instructions](../app/README.md#buildingpushing-docker-image-to-azure) for building the example Docker image and pushing to ACR.
 
 **It is strongly recommend that you save the output of all the commands you run as there are values that will be ouput that will be needed for later commands.**
 
