@@ -710,6 +710,4 @@ You will be prompted to login. Login with the user that we created earlier.
 
 While deploying this, if you get redirected back to the application with error about `csrf`, clear the browser cookies and try again. This is a known issue that you can encounter with the `oauth2-proxy`.
 
-```
 https://github.com/oauth2-proxy/oauth2-proxy/issues/404
-```
