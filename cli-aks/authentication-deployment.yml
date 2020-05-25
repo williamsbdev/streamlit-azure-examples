@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy
+  labels:
+    app: oauth2-proxy
+spec:
+  selector:
+    matchLabels:
+      app: oauth2-proxy
+  template:
+    metadata:
+      labels:
+        app: oauth2-proxy
+    spec:
+      containers:
+      - name: oauth2-proxy
+        image: quay.io/oauth2-proxy/oauth2-proxy:latest
+        env:
+        - name: OAUTH2_PROXY_PROVIDER
+          value: "azure"
+        - name: OAUTH2_PROXY_CLIENT_ID
+          value: "ecbacb08-df8b-450d-82b3-3fced03f2b27"
+        - name: OAUTH2_PROXY_CLIENT_SECRET
+          value: "<app-secret>"
+        - name: OAUTH2_PROXY_COOKIE_SECRET
+          value: "uv4W-_6d6uT9Dc_4z5Ejzg=="
+        - name: OAUTH2_PROXY_COOKIE_SECURE
+          value: "true"
+        - name: OAUTH2_PROXY_COOKIE_DOMAIN
+          value: "example.streamlit.io"
+        - name: OAUTH2_PROXY_EMAIL_DOMAINS
+          value: "*"
+        - name: OAUTH2_PROXY_UPSTREAM
+          value: "http://streamlit-example-service:8501"
+        - name: OAUTH2_PROXY_HTTP_ADDRESS
+          value: "0.0.0.0:4180"
+        ports:
+        - containerPort: 4180
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy-service
+  labels:
+    app: oauth2-proxy
+spec:
+  type: ClusterIP
+  selector:
+    app: oauth2-proxy
+  ports:
+  - port: 4180

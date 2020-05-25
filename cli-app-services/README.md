@@ -142,6 +142,8 @@ az ad app permission grant \
   --api 00000003-0000-0000-c000-000000000000
 ```
 
+This may fail as it may already be applied.
+
 #### Connect application with AAD
 
 In order to update the application authentication to use AAD, we will need the following values:
