@@ -2,7 +2,7 @@
 
 Azure CLI guide to provide an example for how to deploy an Azure App Services Streamlit application authenticated with Azure Active Directory (AAD).
 
-![](images/streamlit-azure-architecture.png)
+![](images/streamlit-azure-app-services-architecture.png)
 
 ## Prerequisites for guides
 
@@ -122,8 +122,14 @@ We need to add permissions
 ```
 az ad app permission add \
   --id ecbacb08-df8b-450d-82b3-3fced03f2b27 \
-  --api 00000003-0000-0000-c000-000000000000
+  --api 00000003-0000-0000-c000-000000000000 \
   --api-permissions 37f7f235-527c-4136-accd-4a02d197296e=Scope e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope
+```
+
+This will return output like this:
+
+```
+Invoking "az ad app permission grant --id ecbacb08-df8b-450d-82b3-3fced03f2b27 --api 00000003-0000-0000-c000-000000000000" is needed to make the change effective
 ```
 
 ##### Grant permissions
